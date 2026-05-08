@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lançamento de Frete - Colmeia</title>
+  <style id="print-page-style"></style> <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; color: #333; margin: 0; padding-bottom: 100px; }
+    .container { max-width: 600px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: auto; }
+    h2, h3 { text-align: center; color: #333; margin-top: 5px; margin-bottom: 5px; }
+    .logo-img { max-width: 120px; display: block; margin: 0 auto 15px auto; }
+    
+    label { font-weight: bold; margin-top: 15px; display: block; font-size: 14px; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+    input:focus, select:focus { border-color: #f5a623; outline: none; box-shadow: 0 0 5px rgba(245, 166, 35, 0.5); }
+    input[readonly] { background-color: #e9ecef; cursor: not-allowed; } 
+    
+    button { background-color: #f5a623; color: #fff; border: none; font-weight: bold; cursor: pointer; transition: background 0.3s; padding: 12px; }
+    button:hover { background-color: #e0961a; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    
+    .btn-adicionar { background-color: #28a745; margin-top: 15px; }
+    .btn-adicionar:hover { background-color: #218838; }
+    
+    .barra-fixa-rodape {
+      position: fixed; bottom: 0; left: 0; width: 100%; background-color: white;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.15); padding: 15px 20px; box-sizing: border-box;
+      display: flex; justify-content: center; z-index: 900;
+    }
+    .btn-revisar { background-color: #007bff; font-size: 16px; max-width: 600px; margin: 0; }
+    .btn-revisar:hover { background-color: #0069d9; }
+    
+    .linha-dupla { display: flex; gap: 10px; }
+    .linha-dupla > div { flex: 1; }
+
+    .tabela-container { margin-top: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f8f9fa; }
+    .btn-remover { background-color: #dc3545; color: white; padding: 4px 8px; font-size: 11px; border: none; border-radius: 4px; cursor: pointer; width: auto; margin:0;}
+    .total-geral-box { font-size: 18px; font-weight: bold; text-align: right; color: #d32f2f; margin-top: 10px; }
+
+    #modal-revisao { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 8px; max-height: 90vh; overflow-y: auto; }
+    .resumo-linha { margin-bottom: 8px; font-size: 15px; }
+    .btn-fechar-modal { background-color: #6c757d; margin-top: 10px; }
+    .botoes-impressao { display: flex; gap: 10px; margin-top: 20px; }
+    .botoes-impressao button { margin: 0; }
+
+    #loading-msg { text-align: center; color: #e0961a; font-weight: bold; font-size: 14px; display: none; }
+    #cupom-impressao, #a4-impressao { display: none; }
+
+    @media print {
+      body { background-color: white; margin: 0; padding: 0; }
+      .container, .barra-fixa-rodape, #modal-revisao { display: none !important; }
+
+      /* IMPRESSÃO TÉRMICA */
+      body.print-termica #cupom-impressao {
+        display: block; width: 100%; max-width: 80mm; margin: 0; padding: 5px;
+        box-sizing: border-box; /* Impede que o padding quebre a largura */
+        font-family: 'Courier New', Courier, monospace; font-size: 14px; 
+        color: #000000 !important; font-weight: 900 !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      body.print-termica #a4-impressao { display: none !important; }
+
+      .cupom-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+      .cupom-header img { max-width: 80px; margin-bottom: 5px; filter: grayscale(100%) contrast(200%); }
+      .cupom-info { margin-bottom: 10px; }
+      .cupom-item { border-bottom: 1px dotted #666; padding-bottom: 5px; margin-bottom: 5px; page-break-inside: avoid; }
+      .cupom-item-title { font-weight: bold; }
+      .cupom-item-valores { display: flex; justify-content: space-between; font-size: 13px; }
+      .cupom-total { border-top: 2px dashed #000; margin-top: 10px; padding-top: 10px; font-size: 16px; text-align: right; font-weight: bold; }
+
+      /* IMPRESSÃO A4 */
+      body.print-a4 #a4-impressao {
+        display: block; width: 100%; font-family: Arial, sans-serif; font-size: 14px; padding: 0;
+        color: #000000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      body.print-a4 #cupom-impressao { display: none !important; }
+
+      .a4-header-container { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+      .a4-header-container img { max-width: 150px; }
+      .a4-titulo { text-align: right; }
+      .a4-titulo h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+      .a4-dados-cliente { background-color: #f8f9fa; padding: 15px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 20px; }
+      .a4-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      .a4-table tr { page-break-inside: avoid; } /* Evita cortar a linha no meio da página */
+      .a4-table th, .a4-table td { border: 1px solid #000; padding: 10px; text-align: left; }
+      .a4-table th { background-color: #eee; font-weight: bold; }
+      .a4-total { text-align: right; font-size: 20px; font-weight: bold; padding-top: 10px; border-top: 2px solid #000; }
+      .a4-assinatura { text-align: center; margin-top: 60px; page-break-inside: avoid; }
+      .a4-assinatura div { width: 300px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="form-container">
+    <img src="https://i.postimg.cc/5t29QDKd/logo.png" alt="Logo Frete Colmeia" class="logo-img">
+    <h2>Controle de Frete</h2>
+    <a href="historico.html" style="display:block; text-align:center; color:#007bff; font-weight:bold; margin-bottom:15px; text-decoration:none;">Ver Histórico de Fretes ➔</a>
+    <p id="loading-msg">Conectando ao banco de dados...</p>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e9ecef;">
+      <div class="linha-dupla">
+        <div><label style="margin-top:0;">Data:</label><input type="date" id="data" class="nav-enter" required></div>
+        <div>
+          <label style="margin-top:0;">Cliente:</label>
+          <select id="cliente" class="nav-enter" required disabled><option value="">Aguarde...</option></select>
+        </div>
+      </div>
+      <label>Vendedor:</label>
+      <select id="vendedor" class="nav-enter" required disabled><option value="">Aguarde...</option></select>
+    </div>
+
+    <div style="border-left: 4px solid #f5a623; padding-left: 15px;">
+      <label style="margin-top:0;">Mercadoria:</label>
+      <input list="lista-mercadorias" id="mercadoria" class="nav-enter" oninput="atualizarCodigo()" placeholder="Aguarde..." disabled autocomplete="off">
+      <datalist id="lista-mercadorias"></datalist>
+      
+      <label>Código da Mercadoria:</label>
+      <input type="text" id="codigo" readonly placeholder="Automático">
+      
+      <div class="linha-dupla">
+        <div><label>Volume (Qtd):</label><input type="number" id="quantidade" class="nav-enter" min="1" value="1" oninput="calcularSubtotal()"></div>
+        <div><label>V. Unitário (R$):</label><input type="number" id="valorUnitario" class="nav-enter" step="0.01" placeholder="0.00" oninput="calcularSubtotal()"></div>
+      </div>
+      
+      <label>Subtotal (R$):</label>
+      <input type="number" id="subtotal" step="0.01" readonly placeholder="0.00">
+      
+      <button type="button" class="btn-adicionar nav-enter" id="btnAdicionar" onclick="adicionarItem()" disabled>+ Adicionar à Lista (Enter)</button>
+    </div>
+
+    <div class="tabela-container">
+      <table>
+        <thead><tr><th>Qtd</th><th>Mercadoria</th><th>V. Unit.</th><th>Total</th><th></th></tr></thead>
+        <tbody id="lista-itens"><tr><td colspan="5" style="text-align:center; color:#777;">Nenhum produto adicionado</td></tr></tbody>
+      </table>
+      <div class="total-geral-box">Total Geral: R$ <span id="totalGeralVisor">0.00</span></div>
+    </div>
+  </div>
+
+  <div class="barra-fixa-rodape">
+    <button type="button" class="btn-revisar nav-enter" id="btnRevisar" onclick="abrirRevisao()" disabled>Revisar e Concluir Frete</button>
+  </div>
+
+  <div id="modal-revisao">
+    <div class="modal-content">
+      <h3 style="border-bottom: 2px solid #f5a623; padding-bottom: 10px;">Revisão do Lançamento</h3>
+      <div class="resumo-linha"><strong>Data:</strong> <span id="rev-data"></span></div>
+      <div class="resumo-linha"><strong>Cliente:</strong> <span id="rev-cliente"></span></div>
+      <div class="resumo-linha"><strong>Vendedor:</strong> <span id="rev-vendedor"></span></div>
+      
+      <h4 style="margin: 15px 0 5px 0;">Produtos:</h4>
+      <table style="width:100%; border-collapse: collapse; font-size:14px; margin-bottom:15px; border:1px solid #ddd;">
+        <thead style="background:#f8f9fa;"><tr><th style="padding:5px; border:1px solid #ddd;">Qtd</th><th style="padding:5px; border:1px solid #ddd;">Item</th><th style="padding:5px; border:1px solid #ddd;">V.Unit</th><th style="padding:5px; border:1px solid #ddd;">Total</th></tr></thead>
+        <tbody id="rev-lista-tbody"></tbody>
+      </table>
+      
+      <div style="font-size: 18px; font-weight: bold; text-align: right; color: #d32f2f;">Total a Pagar: R$ <span id="rev-total"></span></div>
+
+      <div class="botoes-impressao">
+        <button type="button" id="btnSalvarTermica" onclick="processarEnvio('termica')" style="background-color: #343a40;">🖨️ Salvar e Imprimir (Térmica)</button>
+        <button type="button" id="btnSalvarA4" onclick="processarEnvio('a4')" style="background-color: #17a2b8;">📄 Salvar e Imprimir (Normal A4)</button>
+      </div>
+      <button type="button" class="btn-fechar-modal" onclick="fecharRevisao()" style="width: 100%;">Voltar e Editar</button>
+    </div>
+  </div>
+
+  <div id="cupom-impressao">
+    <div class="cupom-header"><img src="https://i.postimg.cc/5t29QDKd/logo.png" alt="Logo"><br><strong>CONTROLE DE FRETE COLMEIA</strong></div>
+    <div class="cupom-info">
+      <div><strong>Data:</strong> <span id="print-t-data"></span></div>
+      <div><strong>Cliente:</strong> <span id="print-t-cliente"></span></div>
+      <div><strong>Vend:</strong> <span id="print-t-vendedor"></span></div>
+    </div>
+    <div style="border-top: 2px dashed #000; padding-top: 10px; margin-bottom: 10px;"><strong>ITENS DO FRETE:</strong></div>
+    <div id="print-t-itens-container"></div>
+    <div class="cupom-total">TOTAL GERAL: R$ <span id="print-t-total"></span></div>
+    <div style="text-align: center; margin-top: 35px; font-size: 12px;">Assinatura do Responsável<br><br>_________________________</div>
+  </div>
+
+  <div id="a4-impressao">
+    <div class="a4-header-container">
+      <div><img src="https://i.postimg.cc/5t29QDKd/logo.png" alt="Logo"></div>
+      <div class="a4-titulo"><h1>Controle de Frete Colmeia</h1><p>Recibo de Lançamento e Transporte</p></div>
+    </div>
+    <div class="a4-dados-cliente">
+      <strong>Data do Lançamento:</strong> <span id="print-a-data"></span><br><br>
+      <strong>Nome do Cliente:</strong> <span id="print-a-cliente"></span><br><br>
+      <strong>Vendedor Responsável:</strong> <span id="print-a-vendedor"></span>
+    </div>
+    <table class="a4-table">
+      <thead><tr><th>Código</th><th>Descrição da Mercadoria</th><th>Volume (Qtd)</th><th>Valor Unitário</th><th>Subtotal</th></tr></thead>
+      <tbody id="print-a-itens-container"></tbody>
+    </table>
+    <div class="a4-total">TOTAL A PAGAR: R$ <span id="print-a-total"></span></div>
+    <div class="a4-assinatura"><div>Assinatura do Responsável</div></div>
+  </div>
+
+  <script>
+    // ==========================================
+    // COLE A SUA URL DO APPS SCRIPT ABAIXO
+    // ==========================================
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8Dnfewt5MZ12vMyTDxHhCnCbydq9m0W_lSqMLK4-PFxUvThDayq0Rm4wRcD5ZUVfY/exec'; 
+
+    let itensFrete = []; 
+    let totalGeral = 0;
+
+    document.getElementById('data').valueAsDate = new Date();
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        const elementosNav = Array.from(document.querySelectorAll('.nav-enter:not([disabled])'));
+        const indexAtivo = elementosNav.indexOf(document.activeElement);
+        if (indexAtivo > -1) {
+          event.preventDefault(); 
+          if (document.activeElement.id === 'btnAdicionar') { adicionarItem(); } 
+          else if (indexAtivo < elementosNav.length - 1) { elementosNav[indexAtivo + 1].focus(); }
+        }
+      }
+    });
+
+    window.onload = async function() {
+      document.getElementById('loading-msg').style.display = 'block';
+      try {
+        const response = await fetch(APPS_SCRIPT_URL);
+        const dados = await response.json();
+        preencherSelects(dados);
+        document.getElementById('cliente').disabled = false;
+        document.getElementById('mercadoria').disabled = false;
+        document.getElementById('btnAdicionar').disabled = false;
+        document.getElementById('loading-msg').style.display = 'none';
+      } catch (error) {
+        alert("Falha ao conectar com a planilha.");
+        document.getElementById('loading-msg').innerText = "Erro de conexão.";
+      }
+    };
+
+    function preencherSelects(dados) {
+      const selectCliente = document.getElementById('cliente');
+      const inputMercadoria = document.getElementById('mercadoria');
+      const datalistMercadoria = document.getElementById('lista-mercadorias');
+      const selectVendedor = document.getElementById('vendedor');
+      
+      selectCliente.innerHTML = '<option value="">Selecione o Cliente</option>';
+      dados.clientes.forEach(c => selectCliente.innerHTML += `<option value="${c}">${c}</option>`);
+      
+      datalistMercadoria.innerHTML = '';
+      dados.mercadorias.forEach(m => {
+        datalistMercadoria.innerHTML += `<option value="${m.nome}" data-cod="${m.codigo}"></option>`;
+      });
+      inputMercadoria.placeholder = "Pesquise ou selecione a mercadoria...";
+      
+      if(dados.vendedores) {
+        selectVendedor.innerHTML = '<option value="">Selecione o Vendedor</option>';
+        dados.vendedores.forEach(v => selectVendedor.innerHTML += `<option value="${v}">${v}</option>`);
+        selectVendedor.disabled = false;
+      }
+    }
+
+    function atualizarCodigo() {
+      const input = document.getElementById('mercadoria');
+      const options = document.getElementById('lista-mercadorias').options;
+      let codigoEncontrado = '';
+
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === input.value) {
+          codigoEncontrado = options[i].getAttribute('data-cod');
+          break;
+        }
+      }
+      
+      document.getElementById('codigo').value = codigoEncontrado;
+    }
+
+    function calcularSubtotal() {
+      const qtd = parseFloat(document.getElementById('quantidade').value) || 0;
+      const valorUnit = parseFloat(document.getElementById('valorUnitario').value) || 0;
+      document.getElementById('subtotal').value = (qtd * valorUnit).toFixed(2);
+    }
+
+    function adicionarItem() {
+      const mercadoria = document.getElementById('mercadoria').value;
+      const codigo = document.getElementById('codigo').value;
+      const quantidade = parseFloat(document.getElementById('quantidade').value);
+      const valorUnitario = parseFloat(document.getElementById('valorUnitario').value);
+      const subtotal = parseFloat(document.getElementById('subtotal').value);
+
+      if (!mercadoria || !quantidade || !valorUnitario || subtotal <= 0) {
+        alert("Preencha a mercadoria, quantidade e valor unitário.");
+        return;
+      }
+
+      itensFrete.push({ codigo, mercadoria, quantidade, valorUnitario, subtotal });
+      atualizarTabela();
+
+      document.getElementById('mercadoria').value = "";
+      document.getElementById('codigo').value = "";
+      document.getElementById('quantidade').value = "1";
+      document.getElementById('valorUnitario').value = "";
+      document.getElementById('subtotal').value = "";
+      document.getElementById('btnRevisar').disabled = false;
+      document.getElementById('mercadoria').focus(); 
+    }
+
+    function removerItem(index) {
+      itensFrete.splice(index, 1);
+      atualizarTabela();
+      if (itensFrete.length === 0) { document.getElementById('btnRevisar').disabled = true; }
+    }
+
+    function atualizarTabela() {
+      const tbody = document.getElementById('lista-itens');
+      tbody.innerHTML = "";
+      totalGeral = 0;
+
+      if (itensFrete.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#777;">Nenhum produto adicionado</td></tr>';
+      } else {
+        itensFrete.forEach((item, index) => {
+          totalGeral += item.subtotal;
+          tbody.innerHTML += `<tr>
+            <td>${item.quantidade}x</td>
+            <td>${item.codigo} - ${item.mercadoria}</td>
+            <td>R$ ${item.valorUnitario.toFixed(2)}</td>
+            <td>R$ ${item.subtotal.toFixed(2)}</td>
+            <td><button class="btn-remover" onclick="removerItem(${index})">X</button></td>
+          </tr>`;
+        });
+      }
+      document.getElementById('totalGeralVisor').innerText = totalGeral.toFixed(2);
+    }
+
+    function abrirRevisao() {
+      const cliente = document.getElementById('cliente').value;
+      const data = document.getElementById('data').value;
+      const vendedor = document.getElementById('vendedor').value;
+      
+      if(!cliente || !data || !vendedor) {
+        alert("Selecione a Data, o Cliente e o Vendedor antes de revisar.");
+        return;
+      }
+
+      document.getElementById('rev-data').innerText = data.split('-').reverse().join('/');
+      document.getElementById('rev-cliente').innerText = cliente;
+      document.getElementById('rev-vendedor').innerText = vendedor;
+      document.getElementById('rev-total').innerText = totalGeral.toFixed(2);
+      
+      const tbody = document.getElementById('rev-lista-tbody');
+      tbody.innerHTML = "";
+      itensFrete.forEach(item => { 
+        tbody.innerHTML += `<tr>
+          <td style="padding:5px; border:1px solid #ddd; text-align:center;">${item.quantidade}x</td>
+          <td style="padding:5px; border:1px solid #ddd;">${item.mercadoria}</td>
+          <td style="padding:5px; border:1px solid #ddd;">R$ ${item.valorUnitario.toFixed(2)}</td>
+          <td style="padding:5px; border:1px solid #ddd;"><strong>R$ ${item.subtotal.toFixed(2)}</strong></td>
+        </tr>`; 
+      });
+
+      document.getElementById('modal-revisao').style.display = 'flex';
+    }
+
+    function fecharRevisao() { document.getElementById('modal-revisao').style.display = 'none'; }
+
+    async function processarEnvio(tipoImpressao) {
+      const btnTermica = document.getElementById('btnSalvarTermica');
+      const btnA4 = document.getElementById('btnSalvarA4');
+      
+      btnTermica.textContent = 'Salvando...'; btnTermica.disabled = true;
+      btnA4.textContent = 'Aguarde...'; btnA4.disabled = true;
+
+      const dadosParaEnvio = {
+        data: document.getElementById('data').value,
+        cliente: document.getElementById('cliente').value,
+        vendedor: document.getElementById('vendedor').value,
+        itens: itensFrete,
+        valorTotalGeral: totalGeral
+      };
+
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(dadosParaEnvio)
+        });
+        const resultado = await response.json();
+
+        if (resultado.status === "Sucesso") {
+          prepararImpressao(dadosParaEnvio, tipoImpressao);
+          itensFrete = [];
+          atualizarTabela();
+          document.getElementById('cliente').value = "";
+          document.getElementById('btnRevisar').disabled = true;
+          fecharRevisao();
+        } else { alert("Erro ao salvar: " + resultado.mensagem); }
+      } catch (error) { alert("Erro de rede ao salvar.");
+      } finally {
+        btnTermica.textContent = '🖨️ Salvar e Imprimir (Térmica)'; btnTermica.disabled = false;
+        btnA4.textContent = '📄 Salvar e Imprimir (Normal A4)'; btnA4.disabled = false;
+      }
+    }
+
+    function prepararImpressao(dados, tipo) {
+      const dataBr = dados.data.split('-').reverse().join('/');
+      
+      // INJETA A MARGEM CORRETA DEPENDENDO DA IMPRESSORA
+      const pageStyle = document.getElementById('print-page-style');
+      if (tipo === 'termica') {
+        pageStyle.innerHTML = '@page { margin: 0; }';
+      } else {
+        pageStyle.innerHTML = '@page { margin: 15mm; }';
+      }
+
+      document.body.classList.remove('print-termica', 'print-a4');
+      document.body.classList.add('print-' + tipo);
+
+      if (tipo === 'termica') {
+        document.getElementById('print-t-data').innerText = dataBr;
+        document.getElementById('print-t-cliente').innerText = dados.cliente;
+        document.getElementById('print-t-vendedor').innerText = dados.vendedor;
+        document.getElementById('print-t-total').innerText = dados.valorTotalGeral.toFixed(2);
+        
+        const cItens = document.getElementById('print-t-itens-container');
+        cItens.innerHTML = "";
+        dados.itens.forEach(item => { cItens.innerHTML += `<div class="cupom-item"><div class="cupom-item-title">${item.codigo} - ${item.mercadoria}</div><div class="cupom-item-valores"><span>${item.quantidade} x R$ ${item.valorUnitario.toFixed(2)}</span><strong>R$ ${item.subtotal.toFixed(2)}</strong></div></div>`; });
+      } else {
+        document.getElementById('print-a-data').innerText = dataBr;
+        document.getElementById('print-a-cliente').innerText = dados.cliente;
+        document.getElementById('print-a-vendedor').innerText = dados.vendedor;
+        document.getElementById('print-a-total').innerText = dados.valorTotalGeral.toFixed(2);
+        
+        const cItensA4 = document.getElementById('print-a-itens-container');
+        cItensA4.innerHTML = "";
+        dados.itens.forEach(item => { cItensA4.innerHTML += `<tr><td>${item.codigo}</td><td>${item.mercadoria}</td><td>${item.quantidade}</td><td>R$ ${item.valorUnitario.toFixed(2)}</td><td><strong>R$ ${item.subtotal.toFixed(2)}</strong></td></tr>`; });
+      }
+      window.print();
+    }
+  </script>
+</body>
+</html>
